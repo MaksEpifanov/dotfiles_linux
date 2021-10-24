@@ -1,0 +1,335 @@
+# Read `man 5 sway` for a complete reference.
+
+########################################## 
+# Startup
+##########################################
+
+exec mako
+exec --no-startup-id libinput-gestures-setup start
+exec /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+exec_always ./.consfig/sway/clamshell.sh
+
+
+##########################################
+# Import theme & gnome settings 
+##########################################
+
+set $gnome-schema org.gnome.desktop.interface
+exec_always {
+    gsettings set $gnome-schema gtk-theme 'Gruvbox-Material-Dark'
+    gsettings set $gnome-schema icon-theme 'Gruvbox-Material-Dark'
+    gsettings set $gnome-schema font-name 'Ubuntu Regular 14'
+    gsettings set $gnome-schema monospace-font-name 'JetBrainsMono Nerd Font 14'
+    gsettings set $gnome-schema cursor-theme 'WhiteSur-cursors'
+    gsettings set $gnome-schema document-font-name 'Ubuntu Regular 14'
+    gsettings set org.gnome.desktop.wm.preferences titlebar-font 'Ubuntu Regular 14'
+    gsettings set org.gnome.desktop.default-applications.terminal exec $term
+}
+
+
+include ~/.config/sway/themes/gruvbox
+
+##########################################
+# Clamshell Mode
+##########################################
+
+set $laptop eDP-1
+bindswitch --reload --locked lid:on output $laptop disable
+bindswitch --reload --locked lid:off output $laptop enable
+
+##########################################
+# Font & Cursor
+##########################################
+
+seat seat0 xcursor_theme WhiteSur-cursor 24 
+font pango: JetBrainsMono Nerd Font 14
+
+########################################## 
+# Variables
+##########################################
+
+# Logo key. Use Mod1 for Alt.
+set $mod Mod4
+
+# Home row direction keys, like vim
+set $left h
+set $down j
+set $up k
+set $right l
+
+# Your preferred terminal emulator
+set $term alacritty
+
+# Quick floating terminal [ MOD + Shift + Return ]
+set $qterm alacritty -t "Floating Terminal"
+
+# Your preferred application launcher
+set $menu exec $term --class=launcher -e sway-launcher-desktop
+
+# Lock to black
+set $lock       swaylock --ignore-empty-password \
+                --daemonize \
+                --color 1d2021 \
+                --show-keyboard-layout \
+                --font JetBrainsMono Nerd Font \
+                --text-color 282828 \
+                --ring-color 689d6a \
+                --ring-clear-color 98971a \
+                --line-ver-color ebdbb2 \
+                --line-uses-ring \
+
+# Lock to black, stop sending output to monitor.
+set $locksoff   swayidle -w  \
+                timeout 1 'swaylock -e -f -c 1d2021 -t' \
+                timeout 2 'swaymsg "output * dpms off"' \
+                resume 'swaymsg "output * dpms on"; pkill -nx swayidle'
+
+set $Pause  [L]ock, loc[K]toblack, [E]xit, [S]uspend, [R]eboot, [END] Shutdown
+mode "$Pause" {
+    bindsym e       exec --no-startup-id $wmexit,               mode "default"
+    bindsym s       exec --no-startup-id systemctl suspend,     mode "default"
+    bindsym r       exec --no-startup-id systemctl reboot,      mode "default"
+    bindsym End     exec --no-startup-id systemctl poweroff -i, mode "default"
+    bindsym l       exec --no-startup-id $lock,                 mode "default"
+    bindsym k       exec --no-startup-id $locksoff,             mode "default"
+ 
+    bindsym Return  mode "default"
+    bindsym Escape  mode "default"
+}
+
+
+############################################# 
+# Output configuration
+#############################################
+#
+# Example configuration:
+#
+#   output HDMI-A-1 resolution 1920x1080 position 1920,0
+#
+# You can get the names of your outputs by running: swaymsg -t get_outputs
+
+
+############################################ 
+# Idle configuration
+############################################
+
+exec swayidle -w \
+	timeout 1800 'swaylock' \
+	timeout 1805 'swaymsg "output * dpms off"' \
+	resume 'swaymsg "output * dpms on"'
+
+############################################ 
+# Input configuration
+############################################
+
+# Keyboard
+input * {
+    xkb_layout "us,ru"
+    xkb_options "grp:win_space_toggle"
+}
+
+# Touchpad
+input type:touchpad {
+    tap enabled
+}
+
+############################################
+# App configuration
+############################################
+
+for_window [app_id="^launcher$"] floating enable, sticky enable, resize set 30 ppt 60 ppt, border pixel 10
+# Dont idle on windows that are full screen
+for_window	[class="^.*"] 					inhibit_idle fullscreen
+for_window	[window_role="pop-up"] 				floating enable
+for_window	[app_id="^.*"] 					inhibit_idle full
+for_window	[app_id="Alacritty" title="Floating Terminal"] 	floating enable, show_marks no
+for_window	[app_id="mpv"]                             	floating enable, resize set width 1400 height 900, move position 245 55
+for_window	[app_id="celluloid"]                           	floating enable, resize set width 1400 height 900, move position 245 55
+for_window	[app_id="vlc"] 					floating enable
+for_window 	[app_id="pamac-manager"] 			floating enable
+for_window	[app_id="thunar"]				floating enable 
+for_window	[app_id="zathura"]				floating enable, resize set width 900 height 900, move position 25 55
+for_window	[app_id="telegram-desktop"]			floating enable, resize set width 900 height 900, move position 25 55
+
+
+for_window 	[window_role="bubble"] 				floating enable
+for_window 	[window_role="task_dialog"] 			floating enable
+for_window 	[window_role="Preferences"] 			floating enable
+for_window 	[window_type="dialog"] 				floating enable
+for_window 	[window_type="menu"]				floating enable
+for_window 	[instance="update_installer"] 			floating enable
+
+############################################ 
+# Custom keybindings
+############################################
+
+bindsym XF86AudioRaiseVolume exec amixer set Master 5%+ 
+bindsym XF86AudioLowerVolume exec amixer set Master 5%- 
+bindsym XF86AudioMute exec amixer set Master toggle 
+bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
+bindsym XF86MonBrightnessUp exec brightnessctl set +5%
+bindsym XF86AudioPlay exec playerctl play-pause
+bindsym XF86AudioNext exec playerctl next
+bindsym XF86AudioPrev exec playerctl previous
+
+bindsym $mod+x mode "$Pause"
+
+# start a quick floating terminal
+bindsym $mod+Shift+Return exec $qterm
+
+
+
+############################################ 
+# Key bindings
+############################################
+# Basics:
+#
+    # Start a terminal
+    bindsym $mod+Return exec $term
+
+    # Kill focused window
+    bindsym $mod+Shift+q kill
+
+    # Start your launcher
+    bindsym $mod+d exec $menu
+
+    # Drag floating windows by holding down $mod and left mouse button.
+    # Resize them with right mouse button + $mod.
+    # Despite the name, also works for non-floating windows.
+    # Change normal to inverse to use left mouse button for resizing and right
+    # mouse button for dragging.
+    floating_modifier $mod normal
+
+    # Reload the configuration file
+    bindsym $mod+Shift+c reload
+
+############################################ 
+# Moving around:
+############################################
+
+    # Move your focus around
+    bindsym $mod+$left focus left
+    bindsym $mod+$down focus down
+    bindsym $mod+$up focus up
+    bindsym $mod+$right focus right
+    # Or use $mod+[up|down|left|right]
+    bindsym $mod+Left focus left
+    bindsym $mod+Down focus down
+    bindsym $mod+Up focus up
+    bindsym $mod+Right focus right
+
+    # Move the focused window with the same, but add Shift
+    bindsym $mod+Shift+$left move left
+    bindsym $mod+Shift+$down move down
+    bindsym $mod+Shift+$up move up
+    bindsym $mod+Shift+$right move right
+    # Ditto, with arrow keys
+    bindsym $mod+Shift+Left move left
+    bindsym $mod+Shift+Down move down
+    bindsym $mod+Shift+Up move up
+    bindsym $mod+Shift+Right move right
+
+#############################################
+# Workspaces:
+#############################################
+
+# Switch to workspace
+    bindsym $mod+1 workspace number 1
+    bindsym $mod+2 workspace number 2
+    bindsym $mod+3 workspace number 3
+    bindsym $mod+4 workspace number 4
+    bindsym $mod+5 workspace number 5
+    bindsym $mod+6 workspace number 6
+    bindsym $mod+7 workspace number 7
+    bindsym $mod+8 workspace number 8
+    bindsym $mod+9 workspace number 9
+    bindsym $mod+0 workspace number 10
+    # Move focused container to workspace
+    bindsym $mod+Shift+1 move container to workspace number 1
+    bindsym $mod+Shift+2 move container to workspace number 2
+    bindsym $mod+Shift+3 move container to workspace number 3
+    bindsym $mod+Shift+4 move container to workspace number 4
+    bindsym $mod+Shift+5 move container to workspace number 5
+    bindsym $mod+Shift+6 move container to workspace number 6
+    bindsym $mod+Shift+7 move container to workspace number 7
+    bindsym $mod+Shift+8 move container to workspace number 8
+    bindsym $mod+Shift+9 move container to workspace number 9
+    bindsym $mod+Shift+0 move container to workspace number 10
+
+###############################################
+# Layout stuff:
+###############################################
+
+    # You can "split" the current object of your focus with
+    # $mod+b or $mod+v, for horizontal and vertical splits
+    # respectively.
+    bindsym $mod+b splith
+    bindsym $mod+v splitv
+
+    # Switch the current container between different layout styles
+    bindsym $mod+s layout stacking
+    bindsym $mod+w layout tabbed
+    bindsym $mod+e layout toggle split
+
+    # Make the current focus fullscreen
+    bindsym $mod+f fullscreen
+
+    # Toggle the current focus between tiling and floating mode
+    bindsym $mod+Shift+space floating toggle
+
+    # Swap focus between the tiling area and the floating area
+    bindsym $mod+space focus mode_toggle
+
+    # Move focus to the parent container
+    bindsym $mod+a focus parent
+
+##################################################
+# Scratchpad:
+##################################################
+
+    # Sway has a "scratchpad", which is a bag of holding for windows.
+    # You can send windows there and get them back later.
+
+    # Move the currently focused window to the scratchpad
+    bindsym $mod+Shift+minus move scratchpad
+
+    # Show the next scratchpad window or hide the focused scratchpad window.
+    # If there are multiple scratchpad windows, this command cycles through them.
+    bindsym $mod+minus scratchpad show
+
+##################################################
+# Resizing containers:
+##################################################
+
+mode "resize" {
+    # left will shrink the containers width
+    # right will grow the containers width
+    # up will shrink the containers height
+    # down will grow the containers height
+    bindsym $left resize shrink width 10px
+    bindsym $down resize grow height 10px
+    bindsym $up resize shrink height 10px
+    bindsym $right resize grow width 10px
+
+    # Ditto, with arrow keys
+    bindsym Left resize shrink width 10px
+    bindsym Down resize grow height 10px
+    bindsym Up resize shrink height 10px
+    bindsym Right resize grow width 10px
+
+    # Return to default mode
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+bindsym $mod+r mode "resize"
+
+###################################################
+# Status Bar:
+###################################################
+
+bar {
+	swaybar_command waybar
+
+}
+
+include /etc/sway/config.d/*
